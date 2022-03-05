@@ -7,7 +7,12 @@
 
 #include "MHZ_AO.h"
 
-// pin for uart reading
+/*
+* Tested with sensors:
+* https://www.aliexpress.com/item/1005002994757073.html
+* https://www.aliexpress.com/item/1005001947070873.html
+*/
+// pin for ESP32 uart2 reading
 #define MH_Z19_RX 25
 #define MH_Z19_TX 26
 #define READ_SENSORS_SEC  5
@@ -59,6 +64,18 @@ void checkMqtt();
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 64
 
+// Black board
+// https://www.aliexpress.com/item/4000065217965.html
+// I2C Communication SDA = 5 and SCL = 4 on Wemos Lolin32 ESP32 with built-in SSD1306 OLED
+#define DISPLAY_SDA 5
+#define DISPLAY_SCL 4
+/*  
+// White board
+// https://www.aliexpress.com/item/32847022581.html
+#define DISPLAY_SDA 4
+#define DISPLAY_SCL 15
+*/
+
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
 
 
@@ -95,14 +112,8 @@ void setup() {
   delay(500);
   Serial.println("MHZ 19C");
 
-// črna plata
-  // Start I2C Communication SDA = 5 and SCL = 4 on Wemos Lolin32 ESP32 with built-in SSD1306 OLED
-  Wire.begin(5, 4);
-/*  
-// bela plata
-  // Start I2C Communication SDA = 4 and SCL = 15
-  Wire.begin(4, 15);
-*/
+  // Start I2C Communication with OLED Display
+  Wire.begin(DISPLAY_SDA, DISPLAY_SCL);
   
   if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C, false, false)) {
     Serial.println(F("SSD1306 allocation failed"));
