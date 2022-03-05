@@ -12,15 +12,21 @@ Features:
 ## Hardware
 
 - Any ESP32 module
-      Tested on following DEV boards (you must select different pins for OLED)
-      - https://www.aliexpress.com/item/4000065217965.html
-      - https://www.aliexpress.com/item/32847022581.html
+
+        Tested on following DEV boards (you must select different pins for OLED)
+
+        - https://www.aliexpress.com/item/4000065217965.html
+
+        - https://www.aliexpress.com/item/32847022581.html
     
 - SSD1306 based display (currently used 128x62) over I2C
 - MH-19C sensor for CO2
-      Tested with sensors:
-      - https://www.aliexpress.com/item/1005002994757073.html
-      - https://www.aliexpress.com/item/1005001947070873.html
+
+        Tested with sensors:
+
+        - https://www.aliexpress.com/item/1005002994757073.html
+
+        - https://www.aliexpress.com/item/1005001947070873.html
 
 ## Libraries required
 
