@@ -1,7 +1,4 @@
-/* MHZ library
 
-    By Tobias Schürg
-*/
 #ifndef MHZ_H
 #define MHZ_H
 
@@ -11,6 +8,8 @@
 #include "WProgram.h"
 #endif
 
+#define LPF_STRENGTH  5  // how strongly is the data filtered
+#define MAX_FILTER_LAG  60  // max difference between sensor readout and filter is +/-60 ppm
 
 // types of sensors.
 #define MHZ14A  141
@@ -45,6 +44,7 @@ class MHZ {
   bool ReadUART();
   int Temperature;
   int CO2ppm;
+  int CO2ppmFiltered = 0;
   int DataValid;
 
  private:
@@ -54,6 +54,7 @@ class MHZ {
   byte getCheckSum(byte *packet);
 
   unsigned long lastRequest = 0;
+  int InternalFilter = 0;  // SHL 8 bits for precision
 };
 
 #endif

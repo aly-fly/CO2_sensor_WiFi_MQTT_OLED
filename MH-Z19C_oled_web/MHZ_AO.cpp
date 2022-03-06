@@ -164,7 +164,16 @@ bool MHZ::ReadUART() {
 
   if ((CO2ppm > 400) && (CO2ppm != 500) && (Temperature > -30) && (status == 0))
     DataValid = coSTATUS_OK;
-    
+
+  // low-pass filter
+  if (DataValid == coSTATUS_OK) {
+    if ((InternalFilter == 0) || (CO2ppmFiltered-CO2ppm < -MAX_FILTER_LAG) || (CO2ppmFiltered-CO2ppm > MAX_FILTER_LAG)) InternalFilter = CO2ppm << 8;  // init or big jump (like venting the room); noise is usually +/-50
+    // https://github.com/jimmyberg/LowPassFilter
+    // out = out + (in-out) / 4
+    InternalFilter = InternalFilter + (((CO2ppm << 8) -  InternalFilter) >> LPF_STRENGTH);
+    CO2ppmFiltered = InternalFilter >> 8;
+  }
+  
   return (DataValid == coSTATUS_OK);
 }
 

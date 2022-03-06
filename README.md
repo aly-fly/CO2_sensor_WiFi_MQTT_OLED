@@ -24,6 +24,15 @@ Tested with sensors:
 - https://www.aliexpress.com/item/1005002994757073.html
 - https://www.aliexpress.com/item/1005001947070873.html
 
+***IMPORTANT !!!***
+Make sure you have a good power supply (stable, low noise and capable of delivering enough current).
+USB cable (if using development board) must be short and with thick wires.
+Required are enough filtering capacitors next to the OLED display, CO2 sensor and ESP32 chip.
+
+Unstable power supply manifests as unstable CO2 readings with lots of variation and noise.
+
+Too weak power supply causes abnormal high CO2 readings.
+
 ## Libraries required
 
 - PubSub client https://pubsubclient.knolleary.net/

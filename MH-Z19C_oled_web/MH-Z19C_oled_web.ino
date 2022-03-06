@@ -11,11 +11,19 @@
 * Tested with sensors:
 * https://www.aliexpress.com/item/1005002994757073.html
 * https://www.aliexpress.com/item/1005001947070873.html
+
+*        IMPORTANT !!!
+*   Make sure you have a good power supply (stable, low noise and capable of delivering enough current).
+*   USB cable (if using development board) must be short and with thick wires.
+*   Required are enough filtering capacitors next to the OLED display, CO2 sensor and ESP32 chip.
+*   Unstable power supply manifests as unstable CO2 readings with lots of variation and noise.
+*   Too weak power supply causes abnormal high CO2 readings.
 */
 // pin for ESP32 uart2 reading
 #define MH_Z19_RX 25
 #define MH_Z19_TX 26
 #define READ_SENSORS_SEC  5
+#define CO2_SERIAL_DEBUG  false
 
 MHZ co2(MH_Z19_RX, MH_Z19_TX, MHZ19C);
 
@@ -131,7 +139,7 @@ void setup() {
  
 
   // enable debug to get addition information
-  co2.setDebug(true);
+  co2.setDebug(CO2_SERIAL_DEBUG);
 /*
   if (co2.isPreHeating()) {
     Serial.print("Preheating");
@@ -187,6 +195,8 @@ void ReadCo2SensorAndDisplay() {
  
     Serial.println("\n------------------------------");
     char txt[10];
+    int16_t  x1, y1;
+    uint16_t w, h; 
   
     display.clearDisplay();
     display.setTextSize(1);      // Normal 1:1 pixel scale
@@ -197,19 +207,21 @@ void ReadCo2SensorAndDisplay() {
     display.setTextSize(1);      // Normal 1:1 pixel scale
     display.setCursor(2, 1);     // Start at top-left corner
     display.write("CO2:");
+    // raw value
+    sprintf(txt, "%d", co2.CO2ppm); 
+    display.getTextBounds(txt, 0, 0, &x1, &y1, &w, &h);
+    display.setCursor(SCREEN_WIDTH-w-2, 1);     // top-right corner
+    display.write(txt);
   
   //  display.setTextSize(4);
   //  display.setCursor(5, 15);
     display.setFont(&FreeSansBold18pt7b);
     if (co2.DataValid == coSTATUS_OK)
-      sprintf(txt, "%d", co2.CO2ppm); 
+      sprintf(txt, "%d", co2.CO2ppmFiltered); 
     else  
       sprintf(txt, "N/A"); 
   
-    int16_t  x1, y1;
-    uint16_t w, h; 
-    display.getTextBounds(txt, 0, 0, &x1, &y1, &w, &h);
-  
+    display.getTextBounds(txt, 0, 0, &x1, &y1, &w, &h);  
     display.setCursor(SCREEN_WIDTH-25-w-8, 15 + h);
     display.write(txt);
   
@@ -419,12 +431,12 @@ void ReportBack() {
   voltage_temp=(adcReadValue*3300+512)/1024; // Voltage in mV. +512 for correct rounding.
   sprintf(str,"%d.%03d",voltage_temp/1000,voltage_temp%1000);
   */      
-        int MQTTReportHumidity = (co2.CO2ppm - 400) / 16;  // 400 ppm = 0% ........ 2000 ppm = 100%
+        int MQTTReportHumidity = (co2.CO2ppmFiltered - 400) / 16;  // 400 ppm = 0% ........ 2000 ppm = 100%
         if (MQTTReportHumidity > 100) MQTTReportHumidity = 100;
         sprintf(message, "%d", MQTTReportHumidity);
         sendToBroker("report/humidity", message);
   
-        sprintf(message, "CO2:  %d ppm", co2.CO2ppm);
+        sprintf(message, "CO2:  %d ppm", co2.CO2ppmFiltered);
         sendToBroker("report/firmware", message);
   //      sendToBroker("report/info", message);
   //    sprintf(message, "%d", BattLevel);
@@ -446,7 +458,8 @@ void ReportBack() {
 
 // Get Sensor Readings and return JSON object
 String PrepareJsonDataForWeb(){
-  readings["CO2ppm"] = String(co2.CO2ppm);
+  readings["CO2ppmRaw"] = String(co2.CO2ppm);
+  readings["CO2ppmFlt"] = String(co2.CO2ppmFiltered);  
 
   String jsonString = JSON.stringify(readings);
   return jsonString;

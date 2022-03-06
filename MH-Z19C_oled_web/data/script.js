@@ -10,9 +10,24 @@ var chartT = new Highcharts.Chart({
   },
   series: [
     {
-      name: 'CO2',
+      name: 'Raw data',
       type: 'line',
-      color: '#101D42',
+      color: '#C0C0C0',
+      marker: {
+        symbol: 'square',
+        radius: 1,
+        fillColor: '#808080',
+      }
+    },
+    {
+      name: 'Filtered',
+      type: 'line',
+      color: '#00A6A6',
+      marker: {
+        symbol: 'circle',
+        radius: 1,
+        fillColor: '#00A6A6',
+      }
     },
   ],
   title: {
