@@ -67,7 +67,8 @@ void checkMqtt();
 #include <Wire.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
-#include <Fonts/FreeSansBold18pt7b.h>
+//#include <Fonts/FreeSansBold18pt7b.h>
+#include <Fonts/FreeSansBold24pt7b.h>
 
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 64
@@ -77,14 +78,19 @@ void checkMqtt();
 // I2C Communication SDA = 5 and SCL = 4 on Wemos Lolin32 ESP32 with built-in SSD1306 OLED
 #define DISPLAY_SDA 5
 #define DISPLAY_SCL 4
-/*  
+#define DISPLAY_RST -1
+#define DISPLAY_ADDRESS 0x3C
+
 // White board
 // https://www.aliexpress.com/item/32847022581.html
-#define DISPLAY_SDA 4
-#define DISPLAY_SCL 15
-*/
+// Heltec ESP32 Oled Wifi kit 32
+//#define DISPLAY_SDA 4
+//#define DISPLAY_SCL 15
+//#define DISPLAY_RST 16
+//#define DISPLAY_ADDRESS 0x3C
 
-Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
+
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, DISPLAY_RST);
 
 
 
@@ -118,12 +124,13 @@ unsigned long lastTimeSentToWebserver = 0;
 void setup() {
   Serial.begin(115200);
   delay(500);
-  Serial.println("MHZ 19C");
+  Serial.println(FIRMWARE_VERSION);
+  Serial.println("Sensor: MHZ 19C");
 
   // Start I2C Communication with OLED Display
   Wire.begin(DISPLAY_SDA, DISPLAY_SCL);
   
-  if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C, false, false)) {
+  if(!display.begin(SSD1306_SWITCHCAPVCC, DISPLAY_ADDRESS, false, false)) {
     Serial.println(F("SSD1306 allocation failed"));
   }
  
@@ -193,7 +200,6 @@ void ReadCo2SensorAndDisplay() {
       Serial.println("n/a");
     }
  
-    Serial.println("\n------------------------------");
     char txt[10];
     int16_t  x1, y1;
     uint16_t w, h; 
@@ -205,32 +211,31 @@ void ReadCo2SensorAndDisplay() {
   
     display.setFont();           // default built-in font
     display.setTextSize(1);      // Normal 1:1 pixel scale
-    display.setCursor(2, 1);     // Start at top-left corner
+    display.setCursor(2, 0);     // Start at top-left corner
     display.write("CO2:");
     // raw value
     sprintf(txt, "%d", co2.CO2ppm); 
     display.getTextBounds(txt, 0, 0, &x1, &y1, &w, &h);
-    display.setCursor(SCREEN_WIDTH-w-2, 1);     // top-right corner
+    display.setCursor(SCREEN_WIDTH-w-2, 0);     // top-right corner
     display.write(txt);
   
-  //  display.setTextSize(4);
-  //  display.setCursor(5, 15);
-    display.setFont(&FreeSansBold18pt7b);
+    display.setFont(&FreeSansBold24pt7b); 
     if (co2.DataValid == coSTATUS_OK)
       sprintf(txt, "%d", co2.CO2ppmFiltered); 
     else  
       sprintf(txt, "N/A"); 
   
-    display.getTextBounds(txt, 0, 0, &x1, &y1, &w, &h);  
-    display.setCursor(SCREEN_WIDTH-25-w-8, 15 + h);
+    display.getTextBounds(txt, 0, 0, &x1, &y1, &w, &h);
+//  display.setCursor(SCREEN_WIDTH-25-w-8, 19 + h);
+    display.setCursor(SCREEN_WIDTH-18-w-8, 12 + h);
     display.write(txt);
   
-    display.setFont();           // default built-in font
+    display.setFont();           // default built in 6x8 font
     display.setTextSize(1);
-    display.setCursor(SCREEN_WIDTH-25, 15+h-8);
+    display.setCursor(SCREEN_WIDTH-18, 12+h-8);
     display.write("PPM");
   
-    display.setCursor(40, SCREEN_HEIGHT-8);
+    display.setCursor(65, SCREEN_HEIGHT-8);
     display.write("Temp: ");
     sprintf(txt, "%d", co2.Temperature); 
   
@@ -284,6 +289,8 @@ void startWifi() {
   WiFi.mode(WIFI_STA);
   WiFi.config(INADDR_NONE, INADDR_NONE, INADDR_NONE, INADDR_NONE);  
   WiFi.setHostname(DEVICE_NAME); 
+  WiFi.setAutoConnect(true);
+  WiFi.setAutoReconnect(true);   
   WiFi.begin(SSID_NAME, SSID_PASSWORD);
   Serial.println("Connecting ...");
   int attempts = 0;
