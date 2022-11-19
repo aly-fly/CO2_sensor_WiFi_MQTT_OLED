@@ -43,7 +43,7 @@ void  ReadCo2SensorAndDisplay(void);
 #define MQTT_USERNAME "YOUR_USERNAME"                      // Username from Smartnest
 #define MQTT_PASSWORD "YOUR_API_KEY"                      // Password from Smartnest (or API key)
 #define MQTT_CLIENT "YOUR_DEVICE_ID"                       // Device Id from smartnest
-#define FIRMWARE_VERSION "CO2 v0.1"  // Custom name for this program
+#define FIRMWARE_VERSION "CO2 v0.3"  // Custom name for this program
 #define STATUS_TX_SEC 15
 
 WiFiClient espClient;
@@ -326,10 +326,10 @@ void startWifi() {
 }
 
 void startMqtt() {
-  client.setServer(MQTT_BROKER, MQTT_PORT);
-  client.setCallback(callback);
+  if (WiFi.status() == WL_CONNECTED) {
+    client.setServer(MQTT_BROKER, MQTT_PORT);
+    client.setCallback(callback);
 
-  while (!client.connected()) {
     Serial.println("Connecting to MQTT...");
     display.write("MQTT start...");
     display.display();
@@ -338,6 +338,25 @@ void startMqtt() {
       Serial.println("connected");
       display.write(" OK \n");
       display.display();
+
+      char subscibeTopic[100];
+      sprintf(subscibeTopic, "%s/#", MQTT_CLIENT);
+      client.subscribe(subscibeTopic);  //Subscribes to all messages send to the device
+    
+      sendToBroker("report/online", "true");  // Reports that the device is online
+      delay(100);
+      sendToBroker("report/firmware", FIRMWARE_VERSION);  // Reports the firmware version
+      delay(100);
+      sendToBroker("report/ip", (char*)WiFi.localIP().toString().c_str());  // Reports the ip
+      delay(100);
+      sendToBroker("report/network", (char*)WiFi.SSID().c_str());  // Reports the network name
+      delay(100);
+    
+      char signal[5];
+      sprintf(signal, "%d", WiFi.RSSI());
+      sendToBroker("report/signal", signal);  // Reports the signal strength
+      delay(100);
+    
     } else {
       if (client.state() == 5) {
         Serial.println("Connection not allowed by broker, possible reasons:");
@@ -355,26 +374,8 @@ void startMqtt() {
       }
 
       delay(0x7530);
-    }
-  }
-
-  char subscibeTopic[100];
-  sprintf(subscibeTopic, "%s/#", MQTT_CLIENT);
-  client.subscribe(subscibeTopic);  //Subscribes to all messages send to the device
-
-  sendToBroker("report/online", "true");  // Reports that the device is online
-  delay(100);
-  sendToBroker("report/firmware", FIRMWARE_VERSION);  // Reports the firmware version
-  delay(100);
-  sendToBroker("report/ip", (char*)WiFi.localIP().toString().c_str());  // Reports the ip
-  delay(100);
-  sendToBroker("report/network", (char*)WiFi.SSID().c_str());  // Reports the network name
-  delay(100);
-
-  char signal[5];
-  sprintf(signal, "%d", WiFi.RSSI());
-  sendToBroker("report/signal", signal);  // Reports the signal strength
-  delay(100);
+    }  // connection failed
+  }  // wifi not connected
 }
 
 void MQTTLoop() {
