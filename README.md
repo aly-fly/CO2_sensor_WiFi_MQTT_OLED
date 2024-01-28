@@ -3,11 +3,12 @@
 Homebrew (DIY) IoT CO2 sensor. Uses ESP32 module and MH-Z19C (or similar) sensor. Arduino platform.
 
 Features:
-- WiFi connectivity (todo: with WPS)
+- WiFi connectivity (with WPS)
 - MQTT transmit to SmartNest.cz (using Thermometer template)
 - OLED display
 - Web server with live charts
 - CO2 sensor is connected to UART 2 on ESP32 chip
+- Clock (NTP & Geolocation to get current time)
 
 ## Hardware
 
@@ -28,8 +29,9 @@ Tested with sensors:
 Make sure you have a good power supply (stable, low noise and capable of delivering enough current).
 USB cable (if using development board) must be short and with thick wires.
 Required are enough filtering capacitors next to the OLED display, CO2 sensor and ESP32 chip.
+Ground / Earth connection between PE in the socket and GND of the circuit is required, because most USB Power Adapters generate high frequency noise which disturbs measurements.
 
-Unstable power supply manifests as unstable CO2 readings with lots of variation and noise.
+Unstable power supply or missing Earth connection manifests as unstable CO2 readings with lots of variation and noise.
 
 Too weak power supply causes abnormal high CO2 readings.
 
@@ -52,3 +54,5 @@ Too weak power supply causes abnormal high CO2 readings.
 - https://randomnerdtutorials.com/esp32-plot-readings-charts-multiple/
 - https://randomnerdtutorials.com/esp32-built-in-oled-ssd1306/
 - https://randomnerdtutorials.com/esp32-ssd1306-oled-display-arduino-ide/
+- https://github.com/aly-fly/EleksTubeHAX
+
