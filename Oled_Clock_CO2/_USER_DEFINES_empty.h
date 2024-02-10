@@ -16,7 +16,7 @@
 //#define DEBUG_OUTPUT
 
 #define DEVICE_NAME       "OLED-clock-CO2"
-#define FIRMWARE_VERSION  "aly-fly OLED clock v2"
+#define FIRMWARE_VERSION  "aly-fly OLED clock v3"
 #define NIGHT_TIME  21 // dim displays at 9 pm 
 #define DAY_TIME     7 // full brightness after 7 am
 #define NTP_INTERVAL_SEC  (11 * 60 * 60)   // every 11 hours

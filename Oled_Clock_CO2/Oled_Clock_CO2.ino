@@ -6,7 +6,7 @@
  */
 
 #include <stdint.h>
-#include "GLOBAL_DEFINES.h"
+#include "_USER_DEFINES.h"
 #include "Clock.h"
 #include "WiFi_WPS.h"
 #include <Adafruit_GFX.h>
@@ -90,7 +90,7 @@ double GeoLocTZoffset = 0;
 
 
 void wpsInitConfig(){
-  wps_config.crypto_funcs = &g_wifi_default_wps_crypto_funcs;
+//  wps_config.crypto_funcs = &g_wifi_default_wps_crypto_funcs;
   wps_config.wps_type = ESP_WPS_MODE;
   strcpy(wps_config.factory_info.manufacturer, ESP_MANUFACTURER);
   strcpy(wps_config.factory_info.model_number, ESP_MODEL_NUMBER);
@@ -99,17 +99,17 @@ void wpsInitConfig(){
 }
 
 
-void WiFiEvent(WiFiEvent_t event, system_event_info_t info){
+void WiFiEvent(WiFiEvent_t event, WiFiEventInfo_t info){
   switch(event){
-    case SYSTEM_EVENT_STA_START:
+    case ARDUINO_EVENT_WIFI_STA_START:
       WifiState = disconnected;
       Serial.println("Station Mode Started");
       break;
-    case SYSTEM_EVENT_STA_CONNECTED:
+    case ARDUINO_EVENT_WIFI_STA_CONNECTED:
       WifiState = connecting;  // IP not yet assigned
-      Serial.println("Connected to AP: " + String(WiFi.SSID()));
+      Serial.println("Connected to: " + String(WiFi.SSID()));
       break;     
-    case SYSTEM_EVENT_STA_GOT_IP:
+    case ARDUINO_EVENT_WIFI_STA_GOT_IP:
       Serial.print("Got IP: ");
 //      IPAddress ip = IPAddress(WiFi.localIP());
   //    Serial.println(ip);
@@ -122,31 +122,49 @@ void WiFiEvent(WiFiEvent_t event, system_event_info_t info){
         WifiState = connected;
 //      }
       break;
-    case SYSTEM_EVENT_STA_DISCONNECTED:
+    case ARDUINO_EVENT_WIFI_STA_DISCONNECTED:
       WifiState = disconnected;
       LastTimeWifiReconnect = millis(); // do not reconnect immediatelly, wait a few minutes
       Serial.print("WiFi lost connection. Reason: ");
-      Serial.println(info.disconnected.reason);
+      Serial.println(info.wifi_sta_disconnected.reason);
 //      WiFi.setAutoConnect(true);
 //      WiFi.setAutoReconnect(true);   
       break;
-    case SYSTEM_EVENT_STA_WPS_ER_SUCCESS:
+    case ARDUINO_EVENT_WPS_ER_SUCCESS:
       WifiState = wps_success;                  
       esp_wifi_wps_disable();
+      display.print("\n ");
+      display.println(WiFi.SSID());
+      display.display();
       Serial.println("WPS Successful, stopping WPS and connecting to: " + String(WiFi.SSID()));
       delay(10);
 // https://stackoverflow.com/questions/48024780/esp32-wps-reconnect-on-power-on      
       WiFi.begin();
       break;
-    case SYSTEM_EVENT_STA_WPS_ER_FAILED:
+    case ARDUINO_EVENT_WPS_ER_FAILED:
       WifiState = wps_failed;
+      Serial.println("WPS Failed, rebooting...");
+      display.print(" REBOOT");
+      display.display();
+      // reboot and retry to connect to WiFi, if maybe network is back up and running.
+      delay (2500);
+      ESP.restart();
+      /*
       Serial.println("WPS Failed, retrying");
       esp_wifi_wps_disable();
       esp_wifi_wps_enable(&wps_config);
       esp_wifi_wps_start(0);
+      */
       break;
-    case SYSTEM_EVENT_STA_WPS_ER_TIMEOUT:
-//      WifiState = wps_failed;
+    case ARDUINO_EVENT_WPS_ER_TIMEOUT:
+      WifiState = wps_failed;
+      Serial.println("WPS Timeout, rebooting...");
+      display.print(" REBOOT");
+      display.display();
+      // reboot and retry to connect to WiFi, if maybe network is back up and running.
+      delay (2500);
+      ESP.restart();
+      /*
       Serial.println("WPS Timeout, retrying");
       display.print("/");  // retry
       display.display();
@@ -154,6 +172,7 @@ void WiFiEvent(WiFiEvent_t event, system_event_info_t info){
       esp_wifi_wps_enable(&wps_config);
       esp_wifi_wps_start(0);
       WifiState = wps_active;
+      */
       break;
     default:
       break;
@@ -162,7 +181,7 @@ void WiFiEvent(WiFiEvent_t event, system_event_info_t info){
 
 
 
-bool WiFiStartWps() {
+void WiFiStartWps() {
    
   display.clearDisplay();  
   display.setCursor(0, 0);
@@ -309,7 +328,6 @@ uint32_t lastTimeSensorRead = 0;
 #include <AsyncTCP.h>
 #include <ESPAsyncWebServer.h>
 #include "SPIFFS.h"
-//#include <Arduino_JSON.h>
 #include <ArduinoJson.h>
 
 // Create AsyncWebServer object on port 80
@@ -331,7 +349,8 @@ unsigned long lastTimeSentToWebserver = 0;
 String PrepareJsonDataForWeb(){
   // Allocate a temporary JsonDocument
   // Use https://arduinojson.org/v6/assistant to compute the capacity.
-  StaticJsonDocument<50> readings;
+// JsonDocument<50> readings;
+  DynamicJsonDocument readings(50);
   readings["CO2ppmRaw"] = String(co2.CO2ppm);
   readings["CO2ppmFlt"] = String(co2.CO2ppmFiltered);  
 
@@ -486,13 +505,19 @@ void callback(char* topic, byte* payload, unsigned int length) {  //A new messag
   int tokensNumber = 10;
   char* tokens[tokensNumber];
   char message[length + 1];
-  splitTopic(topic, tokens, tokensNumber);
+  tokensNumber = splitTopic(topic, tokens, tokensNumber);
   sprintf(message, "%c", (char)payload[0]);
   for (int i = 1; i < length; i++) {
     sprintf(message, "%s%c", message, (char)payload[i]);
   }
   Serial.print("Message:");
   Serial.println(message);
+
+    if (tokensNumber < 3) {
+        // otherwise code below crashes on the strmp on non-initialized pointers in tokens[] array
+        Serial.println("Number of tokens in MQTT message < 3!");
+        return; 
+    }
 
   //------------------ACTIONS HERE---------------------------------
 
@@ -565,16 +590,14 @@ void startMqtt() {
 
 
 int splitTopic(char* topic, char* tokens[], int tokensNumber) {
-  const char s[2] = "/";
-  int pos = 0;
-  tokens[0] = strtok(topic, s);
-
-  while (pos < tokensNumber - 1 && tokens[pos] != NULL) {
-    pos++;
-    tokens[pos] = strtok(NULL, s);
-  }
-
-  return pos;
+    const char s[2] = "/";
+    int pos = 0;
+    tokens[0] = strtok(topic, s);
+    while (pos < tokensNumber - 1 && tokens[pos] != NULL) {
+        pos++;
+        tokens[pos] = strtok(NULL, s);
+    }
+    return pos;
 }
 
 void checkMqtt() {
@@ -840,6 +863,7 @@ void updateClockDisplay() {
   } else // DisplayOFF != 0
    { 
     if (DisplayOFF == 1) { // clear the display only on request, not all the time
+      Serial.println("Request to turn off the display.");
       display.clearDisplay();
       display.display();
       DisplayOFF = 2;

@@ -28,13 +28,12 @@ String IPGeolocation::getResponse(){
 bool IPGeolocation::updateStatus(IPGeo *I){
   if(_API == "ABSTRACT"){
 
-// https://ipgeolocation.abstractapi.com/v1/?api_key=e11dc0f9bab446bfa9957aad2c4ad064
+// https://ipgeolocation.abstractapi.com/v1/?api_key=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
     
-//    const char *host = "app.abstractapi.com";
     const char *host = "ipgeolocation.abstractapi.com";
     const int httpsPort = 443;  //HTTPS= 443 and HTTP = 80
     WiFiClientSecure httpsClient;
-    const size_t capacity = 1536; //2048;
+    const size_t capacity = 2048;
     httpsClient.setInsecure(); //skip verification
     httpsClient.setTimeout(GEO_CONN_TIMEOUT_SEC * 1000); // 15 Seconds
 
@@ -85,7 +84,7 @@ bool IPGeolocation::updateStatus(IPGeo *I){
         return false;
       }
       
-    DEBUGPRINT("GEO API server reply:");
+    DEBUGPRINT("reply:");
     StartTime = millis();
     response_ok = false;
     while(httpsClient.connected()){
@@ -105,21 +104,20 @@ bool IPGeolocation::updateStatus(IPGeo *I){
 
 
     
-//    DynamicJsonDocument doc(capacity);
-//    deserializeJson(doc, _Response);
+    DynamicJsonDocument doc(capacity);
+    deserializeJson(doc, _Response);
 
-    StaticJsonDocument<1536> doc;
-    
-    DeserializationError error = deserializeJson(doc, _Response);
-    
-    if (error) {
-      Serial.print("deserializeJson() failed: ");
-      Serial.println(error.c_str());
+    // catch errors:
+    if (_Response.indexOf("error") > 0) {    
+      DEBUGPRINT("IP Geoloc ERROR!");
       return false;
     }
+    
+/* SAMPLES:
+failure:
+{"error":{"message":"Invalid API key provided.","code":"unauthorized","details":null}}
 
-    JsonObject timezone = doc["timezone"];
-/* SAMPLE - winter time:
+winter time:
 {"ip_address":"93.103.xxx.xxx",
 "city":"Kranj",
 "city_geoname_id":3197378,
@@ -165,6 +163,8 @@ summer time:
 "currency":{"currency_name":"Euros","currency_code":"EUR"},
 "connection":{"autonomous_system_number":34779,"autonomous_system_organization":"xxxx","connection_type":"Cellular","isp_name":"xxxxx","organization_name":null}}
 */
+
+    JsonObject timezone = doc["timezone"];
     
     I->tz = timezone["name"].as<String>();
     I->is_dst = timezone["is_dst"];
@@ -176,8 +176,11 @@ summer time:
     I->latitude = doc["latitude"];
     I->longitude = doc["longitude"];
 
-    DEBUGPRINT("Geo Time Zone: " + String(I->tz));
-    DEBUGPRINT("Geo Current Time: " + String(I->current_time));
+    DEBUGPRINT("Geo Time Zone: ");
+    DEBUGPRINT(I->tz);
+    DEBUGPRINT("Geo Current Time: ");
+    DEBUGPRINT(I->current_time);
+    return true;
   }
   else {
     /*  UNIFINISHED BUGGY CODE
@@ -244,4 +247,6 @@ summer time:
     DEBUGPRINT(dst_savings);
   */
   }
+  return false;
+
 }
