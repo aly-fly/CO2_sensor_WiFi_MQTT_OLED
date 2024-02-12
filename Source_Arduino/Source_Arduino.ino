@@ -350,7 +350,8 @@ String PrepareJsonDataForWeb(){
   // Allocate a temporary JsonDocument
   // Use https://arduinojson.org/v6/assistant to compute the capacity.
 // JsonDocument<50> readings;
-  DynamicJsonDocument readings(50);
+//  DynamicJsonDocument readings(50);
+  JsonDocument readings;
   readings["CO2ppmRaw"] = String(co2.CO2ppm);
   readings["CO2ppmFlt"] = String(co2.CO2ppmFiltered);  
 

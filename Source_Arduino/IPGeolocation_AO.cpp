@@ -104,7 +104,8 @@ bool IPGeolocation::updateStatus(IPGeo *I){
 
 
     
-    DynamicJsonDocument doc(capacity);
+    //DynamicJsonDocument doc(capacity);
+    JsonDocument doc;
     deserializeJson(doc, _Response);
 
     // catch errors:
